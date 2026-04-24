@@ -21,6 +21,8 @@ const io = new Server(server, {
 app.use(cors());
 app.use(express.json());
 
+
+console.log("MONGO_URI exists:", process.env.MONGO_URI ? "YES ✅" : "NO ❌");
 // DB Connection
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('MongoDB connected'))
