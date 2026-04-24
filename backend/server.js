@@ -22,7 +22,7 @@ app.use(cors());
 app.use(express.json());
 
 // DB Connection
-mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/online-attendance')
+mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('MongoDB connected'))
   .catch(err => console.error(err));
 
