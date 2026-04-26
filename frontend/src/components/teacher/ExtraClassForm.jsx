@@ -1,11 +1,18 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import FormInput from '../ui/FormInput';
 import FormSelect from '../ui/FormSelect';
 import Button from '../ui/Button';
 import { useAuth } from '../../context/AuthContext';
 
-const ExtraClassForm = ({ sections, subjects, onSuccess, onCancel }) => {
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+/**
+ * Fix 2: ExtraClassForm now fetches its own sections and subjects internally.
+ * It no longer depends on props from TeacherSchedule's today-only schedule data.
+ */
+const ExtraClassForm = ({ onSuccess, onCancel }) => {
   const { token } = useAuth();
+
   const [formData, setFormData] = useState({
     sectionId: '',
     subjectId: '',
@@ -16,13 +23,41 @@ const ExtraClassForm = ({ sections, subjects, onSuccess, onCancel }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const sectionOptions = useMemo(() => 
-    sections.map(s => ({ label: s.name || s.sectionId?.name || 'Unknown', value: s._id || s.sectionId?._id })),
+  // Internal data fetches
+  const [sections, setSections] = useState([]);
+  const [subjects, setSubjects] = useState([]);
+  const [sectionsLoading, setSectionsLoading] = useState(true);
+  const [subjectsLoading, setSubjectsLoading] = useState(true);
+  const [sectionsError, setSectionsError] = useState(null);
+  const [subjectsError, setSubjectsError] = useState(null);
+
+  useEffect(() => {
+    // Fetch sections this teacher is assigned to (across the full week)
+    fetch(`${BASE_URL}/api/teacher/sections`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(r => r.json())
+      .then(data => setSections(Array.isArray(data) ? data : []))
+      .catch(() => setSectionsError('Failed to load sections'))
+      .finally(() => setSectionsLoading(false));
+
+    // Fetch all subjects
+    fetch(`${BASE_URL}/api/admin/subjects`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(r => r.json())
+      .then(data => setSubjects(Array.isArray(data) ? data : []))
+      .catch(() => setSubjectsError('Failed to load subjects'))
+      .finally(() => setSubjectsLoading(false));
+  }, [token]);
+
+  const sectionOptions = useMemo(() =>
+    sections.map(s => ({ label: s.name, value: s._id })),
     [sections]
   );
 
-  const subjectOptions = useMemo(() => 
-    subjects.map(s => ({ label: `${s.name} (${s.code || ''})`, value: s._id })),
+  const subjectOptions = useMemo(() =>
+    subjects.map(s => ({ label: `${s.name}${s.code ? ` (${s.code})` : ''}`, value: s._id })),
     [subjects]
   );
 
@@ -35,11 +70,10 @@ const ExtraClassForm = ({ sections, subjects, onSuccess, onCancel }) => {
     setLoading(true);
     setError(null);
 
-    // Find subject name for the session record
     const selectedSubject = subjects.find(s => s._id === formData.subjectId);
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/teacher/sessions`, {
+      const res = await fetch(`${BASE_URL}/api/teacher/sessions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -68,23 +102,29 @@ const ExtraClassForm = ({ sections, subjects, onSuccess, onCancel }) => {
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && <div className="p-3 bg-red-100 text-red-700 rounded-lg text-sm">{error}</div>}
 
+      {sectionsError && (
+        <div className="p-3 bg-amber-100 text-amber-700 rounded-lg text-sm">{sectionsError}</div>
+      )}
       <FormSelect
         label="Section"
         name="sectionId"
         value={formData.sectionId}
         onChange={handleChange}
-        options={sectionOptions}
-        placeholder="Select section..."
+        options={sectionsLoading ? [{ label: 'Loading sections...', value: '' }] : sectionOptions}
+        placeholder={sectionsLoading ? 'Loading...' : 'Select section...'}
         required
       />
 
+      {subjectsError && (
+        <div className="p-3 bg-amber-100 text-amber-700 rounded-lg text-sm">{subjectsError}</div>
+      )}
       <FormSelect
         label="Subject"
         name="subjectId"
         value={formData.subjectId}
         onChange={handleChange}
-        options={subjectOptions}
-        placeholder="Select subject..."
+        options={subjectsLoading ? [{ label: 'Loading subjects...', value: '' }] : subjectOptions}
+        placeholder={subjectsLoading ? 'Loading...' : 'Select subject...'}
         required
       />
 

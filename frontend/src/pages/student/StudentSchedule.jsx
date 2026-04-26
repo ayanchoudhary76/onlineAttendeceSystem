@@ -14,13 +14,13 @@ const CardSkeleton = () => (
 );
 
 const StudentSchedule = () => {
-  const { data: allSlots, loading, error, refetch } = useStudentSchedule();
+  // Fix 1 (client-side): use IST-aware day name to match stored slot dayOfWeek values
+  const { data: allSlots, message, loading, error, refetch } = useStudentSchedule();
 
   useEffect(() => { document.title = 'My Schedule — SmartAttend'; }, []);
 
-  const todayName = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-  const daysMap = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  const todayDay = daysMap[new Date().getDay()];
+  const todayName = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'Asia/Kolkata' });
+  const todayDay = new Date().toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata', weekday: 'long' });
 
   const todaySlots = useMemo(() => {
     return allSlots
@@ -46,8 +46,11 @@ const StudentSchedule = () => {
         </div>
       ) : todaySlots.length === 0 ? (
         <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
-          <div className="text-4xl mb-3">📚</div>
-          <p className="text-gray-500 dark:text-gray-400 text-lg">No classes scheduled for today.</p>
+          <div className="text-4xl mb-3">{message ? '🔔' : '📚'}</div>
+          {/* Fix 3: show administrator message when sectionId is null */}
+          <p className="text-gray-500 dark:text-gray-400 text-lg">
+            {message || 'No classes scheduled for today.'}
+          </p>
         </div>
       ) : (
         <div className="space-y-3">

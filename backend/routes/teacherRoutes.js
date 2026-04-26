@@ -25,8 +25,10 @@ router.get('/timetable', async (req, res) => {
 // GET /today - today's schedule with session status
 router.get('/today', async (req, res) => {
   try {
-    const daysMap = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const todayDay = daysMap[new Date().getDay()];
+    const todayDay = new Date().toLocaleDateString('en-US', {
+      timeZone: 'Asia/Kolkata',
+      weekday: 'long'
+    }); // e.g. "Monday"
     const startOfDay = new Date(); startOfDay.setHours(0,0,0,0);
     const endOfDay = new Date(); endOfDay.setHours(23,59,59,999);
 
@@ -253,6 +255,17 @@ router.get('/sections/:id/attendance', async (req, res) => {
     }));
 
     res.json({ report, subjectSessionCounts: Object.values(subjectSessionCounts) });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /sections - all sections this teacher is assigned to
+router.get('/sections', async (req, res) => {
+  try {
+    const Section = require('../models/Section');
+    const sections = await Section.find({ teachers: req.user.id }).select('_id name department semester');
+    res.json(sections);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

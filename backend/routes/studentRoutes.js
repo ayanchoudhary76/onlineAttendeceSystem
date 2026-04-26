@@ -14,11 +14,10 @@ router.use(verifyToken, verifyStudent);
 // GET /timetable - time slots for the student's section, with substitute info for today
 router.get('/timetable', async (req, res) => {
   try {
-    // If sectionId is not in JWT, fetch from DB
     const User = require('../models/User');
     const user = await User.findById(req.user.id);
     if (!user || !user.sectionId) {
-      return res.status(400).json({ message: 'User is not assigned to any section' });
+      return res.json({ slots: [], message: 'You have not been assigned to a section yet. Contact your administrator.' });
     }
 
     const timeslots = await TimeSlot.find({ sectionId: user.sectionId })
@@ -60,7 +59,7 @@ router.get('/timetable', async (req, res) => {
       return obj;
     });
 
-    res.json(enriched);
+    res.json({ slots: enriched });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

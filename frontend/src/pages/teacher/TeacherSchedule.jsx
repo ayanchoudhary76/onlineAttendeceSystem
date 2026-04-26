@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMySchedule } from '../../hooks/useMySchedule';
 import { useAuth } from '../../context/AuthContext';
@@ -29,25 +29,10 @@ const TeacherSchedule = () => {
 
   useEffect(() => { document.title = 'My Schedule — SmartAttend'; }, []);
 
-  const todayName = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-
-  const uniqueSections = useMemo(() => {
-    const seen = new Map();
-    (data.schedule || []).forEach(s => {
-      const id = s.sectionId?._id;
-      if (id && !seen.has(id)) seen.set(id, { _id: id, name: s.sectionId?.name });
-    });
-    return Array.from(seen.values());
-  }, [data.schedule]);
-
-  const uniqueSubjects = useMemo(() => {
-    const seen = new Map();
-    (data.schedule || []).forEach(s => {
-      const id = s.subjectId?._id;
-      if (id && !seen.has(id)) seen.set(id, { _id: id, name: s.subjectId?.name, code: s.subjectId?.code });
-    });
-    return Array.from(seen.values());
-  }, [data.schedule]);
+  // Fix 1: use IST-aware day for the display header
+  const todayName = new Date().toLocaleDateString('en-US', {
+    weekday: 'long', month: 'long', day: 'numeric', timeZone: 'Asia/Kolkata'
+  });
 
   const handleStartClass = async (slot) => {
     try {
@@ -117,8 +102,6 @@ const TeacherSchedule = () => {
 
       <Modal isOpen={isExtraModalOpen} onClose={() => setIsExtraModalOpen(false)} title="Schedule Extra Class">
         <ExtraClassForm
-          sections={uniqueSections}
-          subjects={uniqueSubjects}
           onSuccess={() => { setIsExtraModalOpen(false); refetch(); }}
           onCancel={() => setIsExtraModalOpen(false)}
         />
