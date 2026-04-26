@@ -28,6 +28,13 @@ mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('MongoDB connected'))
   .catch(err => console.error(err));
 
+app.set('io', io);
+
+app.use('/api/admin', require('./routes/adminRoutes'));
+app.use('/api/teacher', require('./routes/teacherRoutes'));
+app.use('/api/student', require('./routes/studentRoutes'));
+
+
 // --- Auth Routes ---
 app.post('/api/auth/register', async (req, res) => {
   try {
@@ -64,112 +71,6 @@ app.post('/api/auth/login', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-
-// --- Session Routes (Teacher) ---
-app.post('/api/sessions', verifyToken, verifyTeacher, async (req, res) => {
-  try {
-    const { name } = req.body;
-    const session = new Session({ teacherId: req.user.id, name });
-    await session.save();
-    res.status(201).json(session);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.get('/api/sessions', verifyToken, verifyTeacher, async (req, res) => {
-  try {
-    const sessions = await Session.find({ teacherId: req.user.id }).sort({ createdAt: -1 });
-    res.json(sessions);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Get attendees for a specific session
-app.get('/api/sessions/:id/attendees', verifyToken, verifyTeacher, async (req, res) => {
-  try {
-    const attendance = await Attendance.find({ sessionId: req.params.id }).populate('studentId', 'name email');
-    res.json(attendance);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// --- API to handle barcode scan and historical fetch ---
-app.get('/api/attendance/my', verifyToken, async (req, res) => {
-  try {
-    if (req.user.role !== 'student') {
-        return res.status(403).json({ message: 'Only students can view their attendance history' });
-    }
-    const attendance = await Attendance.find({ studentId: req.user.id })
-      .sort({ timestamp: -1 })
-      .populate({
-         path: 'sessionId',
-         select: 'name createdAt',
-         populate: { path: 'teacherId', select: 'name' }
-      });
-    res.json(attendance);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.post('/api/attendance/scan', verifyToken, async (req, res) => {
-  try {
-    const { sessionId, qrToken, deviceId } = req.body;
-    
-    // Role check - only students mark attendance
-    if (req.user.role !== 'student') {
-        return res.status(403).json({ message: 'Only students can mark attendance' });
-    }
-
-    const session = await Session.findById(sessionId);
-    if (!session || !session.isActive) {
-      return res.status(400).json({ message: 'Invalid or inactive session' });
-    }
-
-    // Verify dynamic token
-    if (session.currentQrToken !== qrToken) {
-      return res.status(400).json({ message: 'Expired or invalid QR code. Please scan the current one.' });
-    }
-
-    // Check device fingerprinting (One device = one student per session)
-    // Could track if same deviceId was used for another student in this session
-    const existingDeviceUsed = await Attendance.findOne({ sessionId, deviceId, studentId: { $ne: req.user.id } });
-    if (existingDeviceUsed) {
-        return res.status(403).json({ message: 'This device has already been used to mark attendance for someone else.' });
-    }
-
-    const attendanceRecord = new Attendance({
-      sessionId,
-      studentId: req.user.id,
-      deviceId
-    });
-
-    try {
-        await attendanceRecord.save();
-        
-        // Notify the teacher via socket
-        io.to(sessionId.toString()).emit('student_scanned', {
-            studentName: req.user.name,
-            studentId: req.user.id,
-            timestamp: new Date()
-        });
-
-        res.json({ message: 'Attendance marked successfully!' });
-    } catch (saveWaitError) {
-        if(saveWaitError.code === 11000) {
-            return res.status(400).json({ message: 'You have already marked your attendance.'});
-        }
-        throw saveWaitError;
-    }
-
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
 
 // --- Socket.IO Implementation ---
 // Manage active rotating intervals

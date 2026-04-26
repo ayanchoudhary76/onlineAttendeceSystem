@@ -24,4 +24,18 @@ const verifyTeacher = (req, res, next) => {
   return res.status(403).json({ message: 'Teacher role required' });
 };
 
-module.exports = { verifyToken, verifyTeacher };
+const verifyAdmin = (req, res, next) => {
+  if (req.user && req.user.role === 'admin') {
+    return next();
+  }
+  return res.status(403).json({ message: 'Admin role required' });
+};
+
+const verifyStudent = (req, res, next) => {
+  if (req.user && req.user.role === 'student') {
+    return next();
+  }
+  return res.status(403).json({ message: 'Student role required' });
+};
+
+module.exports = { verifyToken, verifyTeacher, verifyAdmin, verifyStudent };
