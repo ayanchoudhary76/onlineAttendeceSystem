@@ -31,8 +31,7 @@ const DataTable = ({ columns, data, actions, emptyMessage = 'No records found.' 
             <tr key={rowIndex} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
               {columns.map((col, colIndex) => (
                 <td key={colIndex} className="px-6 py-4">
-                  {/* Handle nested object access like studentId.name if necessary, or assume flattened data */}
-                  {col.accessor.split('.').reduce((obj, key) => (obj ? obj[key] : '-'), row)}
+                  {row[col.accessor]}
                 </td>
               ))}
               {actions && actions.length > 0 && (

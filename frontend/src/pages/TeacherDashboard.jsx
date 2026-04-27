@@ -4,6 +4,7 @@ import { Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
 import TeacherSchedule from './teacher/TeacherSchedule';
 import TeacherAttendance from './teacher/TeacherAttendance';
 import TeacherLeave from './teacher/TeacherLeave';
+import SessionController from './teacher/SessionController';
 
 const TeacherDashboard = () => {
   const location = useLocation();
@@ -40,7 +41,7 @@ const TeacherDashboard = () => {
         <Routes>
           <Route path="/" element={<Navigate to="/teacher/schedule" replace />} />
           <Route path="schedule" element={<TeacherSchedule />} />
-          <Route path="session/:id" element={<TeacherSchedule />} />
+          <Route path="session/:id" element={<SessionController />} />
           <Route path="attendance" element={<TeacherAttendance />} />
           <Route path="leave" element={<TeacherLeave />} />
         </Routes>

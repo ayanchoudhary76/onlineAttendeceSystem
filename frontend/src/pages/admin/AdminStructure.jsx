@@ -32,6 +32,7 @@ const AdminStructure = () => {
   const [isSectionModalOpen, setIsSectionModalOpen] = useState(false);
   const [isSubjectModalOpen, setIsSubjectModalOpen] = useState(false);
   const [manageSectionTarget, setManageSectionTarget] = useState(null); // stores the section object if managing
+  const [editSubjectTarget, setEditSubjectTarget] = useState(null); // stores subject to edit
 
   // Table Configs
   const sectionColumns = [
@@ -52,6 +53,15 @@ const AdminStructure = () => {
   const subjectColumns = [
     { header: 'Subject Name', accessor: 'name' },
     { header: 'Course Code', accessor: 'code' },
+    { header: 'Assigned Teacher', accessor: (row) => row.teacherId?.name || <span className="text-gray-400 text-xs italic">Unassigned</span> },
+  ];
+
+  const subjectActions = [
+    {
+      label: 'Assign Teacher',
+      variant: 'secondary',
+      onClick: (subject) => { setEditSubjectTarget(subject); setIsSubjectModalOpen(true); }
+    }
   ];
 
   return (
@@ -131,6 +141,7 @@ const AdminStructure = () => {
               <DataTable
                 columns={subjectColumns}
                 data={subjectsData}
+                actions={subjectActions}
                 emptyMessage="No subjects yet. Add your first subject."
               />
             )}
@@ -155,15 +166,17 @@ const AdminStructure = () => {
 
       <Modal 
         isOpen={isSubjectModalOpen} 
-        onClose={() => setIsSubjectModalOpen(false)}
-        title="Add New Subject"
+        onClose={() => { setIsSubjectModalOpen(false); setEditSubjectTarget(null); }}
+        title={editSubjectTarget ? 'Assign Teacher to Subject' : 'Add New Subject'}
       >
         <SubjectForm 
+          subject={editSubjectTarget}
           onSuccess={() => {
             setIsSubjectModalOpen(false);
+            setEditSubjectTarget(null);
             refetchSubjects();
           }} 
-          onCancel={() => setIsSubjectModalOpen(false)}
+          onCancel={() => { setIsSubjectModalOpen(false); setEditSubjectTarget(null); }}
         />
       </Modal>
 

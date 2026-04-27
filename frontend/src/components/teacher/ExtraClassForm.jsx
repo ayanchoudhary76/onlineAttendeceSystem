@@ -41,8 +41,8 @@ const ExtraClassForm = ({ onSuccess, onCancel }) => {
       .catch(() => setSectionsError('Failed to load sections'))
       .finally(() => setSectionsLoading(false));
 
-    // Fetch all subjects
-    fetch(`${BASE_URL}/api/admin/subjects`, {
+    // Fetch all subjects (teacher-accessible endpoint)
+    fetch(`${BASE_URL}/api/teacher/subjects`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(r => r.json())
@@ -82,6 +82,10 @@ const ExtraClassForm = ({ onSuccess, onCancel }) => {
         body: JSON.stringify({
           sectionId: formData.sectionId,
           subjectId: formData.subjectId,
+          date: formData.date,
+          startTime: formData.startTime,
+          endTime: formData.endTime,
+          sessionType: 'extra',
           name: selectedSubject?.name || 'Extra Class',
           isExtraClass: true
         })

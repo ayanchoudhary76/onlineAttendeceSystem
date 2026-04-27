@@ -141,6 +141,30 @@ router.post('/sessions', async (req, res) => {
   }
 });
 
+// GET /sessions/:id - fetch active session details for the controller page
+router.get('/sessions/:id', async (req, res) => {
+  try {
+    const session = await Session.findById(req.params.id)
+      .populate('subjectId', 'name code')
+      .populate('sectionId', 'name')
+      .populate('teacherId', 'name');
+
+    if (!session) return res.status(404).json({ message: 'Session not found' });
+
+    // Verify requesting teacher is original or substitute
+    const requesterId = req.user.id.toString();
+    const isOwner = session.teacherId?._id?.toString() === requesterId ||
+                    session.substituteTeacherId?.toString() === requesterId;
+    if (!isOwner) return res.status(403).json({ message: 'Unauthorized' });
+
+    const attendanceCount = await Attendance.countDocuments({ sessionId: req.params.id });
+
+    res.json({ session, attendanceCount });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // POST /sessions/:id/end - end session
 router.post('/sessions/:id/end', async (req, res) => {
   try {
@@ -266,6 +290,17 @@ router.get('/sections', async (req, res) => {
     const Section = require('../models/Section');
     const sections = await Section.find({ teachers: req.user.id }).select('_id name department semester');
     res.json(sections);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /subjects - all subjects (for ExtraClassForm dropdown)
+router.get('/subjects', async (req, res) => {
+  try {
+    const Subject = require('../models/Subject');
+    const subjects = await Subject.find().select('_id name code');
+    res.json(subjects);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

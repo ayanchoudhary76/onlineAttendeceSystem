@@ -126,10 +126,11 @@ router.delete('/sections/:id/teachers/:teacherId', async (req, res) => {
 // POST /subjects
 router.post('/subjects', async (req, res) => {
   try {
-    const { name, code } = req.body;
-    const subject = new Subject({ name, code });
+    const { name, code, teacherId } = req.body;
+    const subject = new Subject({ name, code, teacherId: teacherId || null });
     await subject.save();
-    res.status(201).json(subject);
+    const populated = await Subject.findById(subject._id).populate('teacherId', 'name email');
+    res.status(201).json(populated);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -138,8 +139,24 @@ router.post('/subjects', async (req, res) => {
 // GET /subjects
 router.get('/subjects', async (req, res) => {
   try {
-    const subjects = await Subject.find();
+    const subjects = await Subject.find().populate('teacherId', 'name email');
     res.json(subjects);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// PUT /subjects/:id
+router.put('/subjects/:id', async (req, res) => {
+  try {
+    const { name, code, teacherId } = req.body;
+    const subject = await Subject.findByIdAndUpdate(
+      req.params.id,
+      { name, code, teacherId: teacherId || null },
+      { new: true, runValidators: true }
+    ).populate('teacherId', 'name email');
+    if (!subject) return res.status(404).json({ message: 'Subject not found' });
+    res.json(subject);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

@@ -1,14 +1,41 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import FormInput from '../../components/ui/FormInput';
+import FormSelect from '../../components/ui/FormSelect';
 import Button from '../../components/ui/Button';
 import { useAuth } from '../../context/AuthContext';
 
-const SubjectForm = ({ onSuccess, onCancel }) => {
-  const [formData, setFormData] = useState({ name: '', code: '' });
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+const SubjectForm = ({ onSuccess, onCancel, subject }) => {
+  const isEdit = Boolean(subject);
+  const [formData, setFormData] = useState({
+    name: subject?.name || '',
+    code: subject?.code || '',
+    teacherId: subject?.teacherId?._id || subject?.teacherId || ''
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [fieldErrors, setFieldErrors] = useState({});
   const { token } = useAuth();
+
+  // Fetch teachers for the dropdown
+  const [teachers, setTeachers] = useState([]);
+  const [teachersLoading, setTeachersLoading] = useState(true);
+
+  useEffect(() => {
+    fetch(`${BASE_URL}/api/admin/users?role=teacher`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(r => r.json())
+      .then(data => setTeachers(Array.isArray(data) ? data : []))
+      .catch(() => {})
+      .finally(() => setTeachersLoading(false));
+  }, [token]);
+
+  const teacherOptions = [
+    { label: 'Unassigned', value: '' },
+    ...teachers.map(t => ({ label: t.name, value: t._id }))
+  ];
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -25,18 +52,27 @@ const SubjectForm = ({ onSuccess, onCancel }) => {
     setError(null);
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/admin/subjects`, {
-        method: 'POST',
+      const url = isEdit
+        ? `${BASE_URL}/api/admin/subjects/${subject._id}`
+        : `${BASE_URL}/api/admin/subjects`;
+      const method = isEdit ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          name: formData.name.trim(),
+          code: formData.code.trim(),
+          teacherId: formData.teacherId || null
+        })
       });
-      
+
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || data.error || 'Failed to create subject');
-      
+      if (!res.ok) throw new Error(data.message || data.error || 'Failed to save subject');
+
       onSuccess();
     } catch (err) {
       setError(err.message);
@@ -48,7 +84,7 @@ const SubjectForm = ({ onSuccess, onCancel }) => {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && <div className="p-3 bg-red-100 text-red-700 rounded-lg text-sm">{error}</div>}
-      
+
       <FormInput
         label="Subject Name"
         name="name"
@@ -69,9 +105,20 @@ const SubjectForm = ({ onSuccess, onCancel }) => {
         required
       />
 
+      <FormSelect
+        label="Assigned Teacher (optional)"
+        name="teacherId"
+        value={formData.teacherId}
+        onChange={handleChange}
+        options={teachersLoading ? [{ label: 'Loading teachers…', value: '' }] : teacherOptions}
+        placeholder="Select teacher…"
+      />
+
       <div className="flex justify-end space-x-3 mt-6">
         <Button variant="secondary" type="button" onClick={onCancel}>Cancel</Button>
-        <Button variant="primary" type="submit" loading={loading}>Save Subject</Button>
+        <Button variant="primary" type="submit" loading={loading}>
+          {isEdit ? 'Update Subject' : 'Save Subject'}
+        </Button>
       </div>
     </form>
   );
