@@ -6,6 +6,9 @@ const User = require('./models/User');
 const Section = require('./models/Section');
 const Subject = require('./models/Subject');
 const TimeSlot = require('./models/TimeSlot');
+const Session = require('./models/Session');
+const Attendance = require('./models/Attendance');
+const LeaveRequest = require('./models/LeaveRequest');
 
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('MongoDB connected for seeding'))
@@ -21,6 +24,10 @@ const seedDatabase = async () => {
     await Section.deleteMany({});
     await Subject.deleteMany({});
     await TimeSlot.deleteMany({});
+    await Session.deleteMany({});
+    await Attendance.deleteMany({});
+    await LeaveRequest.deleteMany({});
+
 
     // Create Sections
     const sectionA = await Section.create({ name: 'CSE-3A', department: 'Computer Science', semester: 3 });
