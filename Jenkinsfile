@@ -86,8 +86,6 @@ pipeline {
                     kubectl apply -f k8s/backend-service.yaml
                     kubectl apply -f k8s/frontend-service.yaml
 
-                    kubectl rollout status deployment/attendance-backend  --timeout=300s
-                    kubectl rollout status deployment/attendance-frontend --timeout=300s
                 '''
             }
         }
