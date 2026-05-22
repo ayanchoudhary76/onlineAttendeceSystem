@@ -1,31 +1,28 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: frontend
+  name: attendance-frontend
+  labels:
+    app: attendance-frontend
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
-      app: frontend
+      app: attendance-frontend
   template:
     metadata:
       labels:
-        app: frontend
+        app: attendance-frontend
     spec:
       containers:
-      - name: frontend
-        image: 886682669061.dkr.ecr.eu-north-1.amazonaws.com/ayanchoudhary76/attendance-frontend:latest
-        ports:
-        - containerPort: 80
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: frontend-service
-spec:
-  selector:
-    app: frontend
-  ports:
-  - port: 80
-    targetPort: 80
-  type: LoadBalancer
+        - name: frontend
+          image: 886682669061.dkr.ecr.eu-north-1.amazonaws.com/ayanchoudhary76/attendance-frontend:IMAGE_TAG
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "200m"
