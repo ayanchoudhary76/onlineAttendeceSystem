@@ -15,10 +15,23 @@ const { verifyToken, verifyTeacher } = require('./middleware/auth');
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: { origin: '*', methods: ['GET', 'POST'] }
+  cors: {
+    origin: [
+      "https://attendancelive.dev",
+      "https://www.attendancelive.dev"
+    ],
+    methods: ["GET", "POST"],
+    credentials: true
+  }
 });
 
-app.use(cors());
+app.use(cors({
+  origin: [
+    "https://attendancelive.dev",
+    "https://www.attendancelive.dev"
+  ],
+  credentials: true
+}));
 app.use(express.json());
 
 
