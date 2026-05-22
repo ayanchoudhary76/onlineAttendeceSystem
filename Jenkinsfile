@@ -45,7 +45,7 @@ pipeline {
                 dir('frontend') {
                     sh '''
                         docker build \
-                        --build-arg VITE_API_URL=http://a4b138fed7f61495a826caf3ef8bae52-2112324398.eu-north-1.elb.amazonaws.com:5000 \
+                        --build-arg VITE_API_URL=https://api.attendancelive.dev \
                         -t $ECR_FRONTEND:$IMAGE_TAG .
                         docker tag $ECR_FRONTEND:$IMAGE_TAG $ECR_FRONTEND:latest
                     '''
