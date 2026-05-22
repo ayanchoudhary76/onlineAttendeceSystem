@@ -8,6 +8,7 @@ pipeline {
         ECR_FRONTEND      = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/ayanchoudhary76/attendance-frontend"
         CLUSTER_NAME      = 'attendance-cluster'
         IMAGE_TAG         = "${BUILD_NUMBER}"
+        VITE_API_URL      = "https://api.attendancelive.dev"
     }
 
     stages {
@@ -45,8 +46,8 @@ pipeline {
                 dir('frontend') {
                     sh '''
                         docker build \
-                        --build-arg VITE_API_URL=https://api.attendancelive.dev \
-                        -t $ECR_FRONTEND:$IMAGE_TAG .
+                          --build-arg VITE_API_URL=$VITE_API_URL \
+                          -t $ECR_FRONTEND:$IMAGE_TAG .
                         docker tag $ECR_FRONTEND:$IMAGE_TAG $ECR_FRONTEND:latest
                     '''
                 }
@@ -86,6 +87,8 @@ pipeline {
                     kubectl apply -f k8s/backend-service.yaml
                     kubectl apply -f k8s/frontend-service.yaml
 
+                    kubectl rollout status deployment/attendance-backend  --timeout=120s
+                    kubectl rollout status deployment/attendance-frontend --timeout=120s
                 '''
             }
         }
@@ -93,11 +96,11 @@ pipeline {
         stage('Get Service URLs') {
             steps {
                 sh '''
-                    echo "====== Backend URL ======"
+                    echo "====== Backend LoadBalancer ======"
                     kubectl get svc attendance-backend-svc \
                       -o jsonpath="{.status.loadBalancer.ingress[0].hostname}"
                     echo ""
-                    echo "====== Frontend URL ======"
+                    echo "====== Frontend LoadBalancer ======"
                     kubectl get svc attendance-frontend-svc \
                       -o jsonpath="{.status.loadBalancer.ingress[0].hostname}"
                     echo ""
